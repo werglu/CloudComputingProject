@@ -1,0 +1,12 @@
+﻿<form [formGroup]="addForm" (ngSubmit)="onSubmit()">
+    
+    <div style="display:grid">
+        <h3>Create new post</h3>
+        <label>Text:</label>
+        <textarea formControlName="text"></textarea>
+        <input type="file" (change)="onFileSelected($event)" style="margin-top:20px">
+        <!--<button class="btn btn-secondary" (click)="onUpload()" >Upload file</button>-->
+        
+        <button class="btn btn-primary" style="width:65px; margin-top:20px" type="submit">Add</button>
+    </div>
+</form>
