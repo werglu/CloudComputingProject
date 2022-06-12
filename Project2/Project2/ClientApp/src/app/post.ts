@@ -1,6 +1,7 @@
 ﻿export interface Post {
-    id?: number;
+    id?: string;
     text: string;
+    isPinned: boolean;
     createdDate: Date;
-    file?: File;
+    //file?: File;
 }

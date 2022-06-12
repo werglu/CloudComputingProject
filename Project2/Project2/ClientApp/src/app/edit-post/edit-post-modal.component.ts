@@ -1,7 +1,6 @@
-﻿import { HttpErrorResponse } from '@angular/common/http';
-import { Component } from '@angular/core';
+﻿import { Component } from '@angular/core';
 import { FormBuilder, FormGroup } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Post } from '../post';
 import { PostService } from '../post.service';
 
@@ -13,10 +12,11 @@ export class EditPostModalComponent {
     form: FormGroup;
     selectedFile: File = null;
     postToEdit: Post;
-    id: number;
+    id: string;
 
     constructor(private formBuilder: FormBuilder,
         private activatedRoute: ActivatedRoute,
+        private router: Router,
         private postService: PostService) {
  
 
@@ -26,7 +26,7 @@ export class EditPostModalComponent {
             console.log(`${this.id}`);
 
             this.postService.getPost(this.id).subscribe(post => {
-                this.selectedFile = post.file;
+                //this.selectedFile = post.file;
                 this.postToEdit = post;
                 this.form = this.formBuilder.group({
                     text: post.text
@@ -40,14 +40,15 @@ export class EditPostModalComponent {
             const post = <Post>{
                 text: this.form.value.text,
                 createdDate: new Date(),
-                file: this.selectedFile
+                isPinned: false,
+                //file: this.selectedFile
             };
 
             this.postService.editPost(this.id, post).subscribe(
                 response => {
-                    this.form.reset();
+                    this.router.navigateByUrl('/');
                 },
-                (error: HttpErrorResponse) => {
+                error => {
                     console.log('error when adding new post');
                 }
             )

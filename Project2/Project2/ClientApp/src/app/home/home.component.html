@@ -5,7 +5,8 @@
         <tr>
             <th>Date</th>
             <th>Text</th>
-            <th>File name</th>
+            <th>Is pinned</th>
+            <!--<th>File name</th>-->
             <th>Edit</th>
             <th>Delete</th>
         </tr>
@@ -14,7 +15,8 @@
         <tr *ngFor="let post of posts">
             <td>{{ post.createdDate }}</td>
             <td>{{ post.text }}</td>
-            <td>{{post.file ? post.file.name : ''}}</td>
+            <td>{{ post.isPinned }}</td>
+            <!--<td>{{post.file ? post.file.name : ''}}</td>-->
             <td><button class="btn-secondary"  [routerLink]="['/editPost/'+post.id]" >Edit post</button></td>
             <td><button class="btn-secondary" (click)="delete(post)">Delete post</button></td>
         </tr>

@@ -13,27 +13,22 @@ export class PostService {
     }
 
     getAllPosts(): Observable<Post[]> {
-        var baseUrl: string = '/';//environment.apiBaseUrl;
-        return this.http.get<Post[]>(baseUrl + 'api/post');
+        return this.http.get<Post[]>(environment.apiBaseUrl + 'posts');
     }
 
-    getPost(id: number): Observable<Post> {
-        var baseUrl: string = '/';//environment.apiBaseUrl;
-        return this.http.get<Post>(baseUrl + `api/post/${id}`);
+    getPost(id: string): Observable<Post> {
+        return this.http.get<Post>(environment.apiBaseUrl + `posts/${id}`);
     }
 
-    public addPost(post: Post): Observable<Post> {
-        var baseUrl: string = '';//environment.apiBaseUrl;
-        return this.http.post<Post>(baseUrl + 'api/post/', post);
+    addPost(post: Post): Observable<Post> {
+        return this.http.post<Post>(environment.apiBaseUrl + 'posts/', post);
     }
 
-    public editPost(id: number, post: Post){
-        var baseUrl: string = '';//environment.apiBaseUrl;
-        return this.http.put(baseUrl + `api/post/${id}`, post);
+    editPost(id: string, post: Post){
+        return this.http.put(environment.apiBaseUrl + `posts/${id}`, post);
     }
 
-    deletePost(id: number) {
-        var baseUrl: string = '';//environment.apiBaseUrl;
-        return this.http.delete(baseUrl + `api/post/${id}`);
+    deletePost(id: string) {
+        return this.http.delete(environment.apiBaseUrl + `posts/${id}`);
     }
 }

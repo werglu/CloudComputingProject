@@ -3,17 +3,31 @@ import { Post } from '../post';
 import { PostService } from '../post.service';
 
 @Component({
-  selector: 'app-home',
-  templateUrl: './home.component.html',
+    selector: 'app-home',
+    templateUrl: './home.component.html',
 })
 export class HomeComponent {
     public posts: Post[];
 
     constructor(private postService: PostService) {
-        //this.postService.getAllPosts().subscribe(p => {
-        //    this.posts = p;
-        //});
-        this.posts = [{ createdDate: new Date(), text: 'teteyd', id: 1 }, { createdDate: new Date(), text: 'ewrw', id: 2 },]
+        this.postService.getAllPosts().subscribe(p => {
+            console.log(p);
+            this.posts = p;
+            //this.posts = p;
+        });
+        //this.posts = [
+        //    {
+        //        id: '1',
+        //        text: 'teteyd',
+        //        isPinned: false,
+        //        createdDate: new Date(),
+        //    },
+        //    {
+        //        id: '2',
+        //        text: 'ewrw',
+        //        isPinned: true,
+        //        createdDate: new Date(),
+        //    }];
     }
 
     public delete(post: Post) {
