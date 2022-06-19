@@ -3,5 +3,5 @@
     text: string;
     isPinned: boolean;
     createdDate: Date;
-    //file?: File;
+    file?: string;
 }
