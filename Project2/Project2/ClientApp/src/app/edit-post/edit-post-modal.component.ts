@@ -29,7 +29,8 @@ export class EditPostModalComponent {
                 //this.selectedFile = post.file;
                 this.postToEdit = post;
                 this.form = this.formBuilder.group({
-                    text: post.text
+                    text: post.text,
+                    isPinned: post.isPinned
                 });
             })
         });
@@ -54,12 +55,6 @@ export class EditPostModalComponent {
             )
         }
     }
-
-
-    //onUpload() {
-        
-
-    //}
 
     onFileSelected(event) {
         this.selectedFile = <File>event.target.files[0];

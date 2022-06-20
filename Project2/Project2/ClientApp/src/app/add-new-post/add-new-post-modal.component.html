@@ -5,8 +5,9 @@
         <label>Text:</label>
         <textarea formControlName="text"></textarea>
         <input type="file" (change)="onFileSelected($event)" style="margin-top:20px">
-        <!--<button class="btn btn-secondary" (click)="onUpload()" >Upload file</button>-->
-        
+        <div>
+            <input style="margin-right:10px; margin-top:20px" type="checkbox" id="isPinned" name="isPinned" formControlName="isPinned">Is pinned
+        </div>
         <button class="btn btn-primary" style="width:65px; margin-top:20px" type="submit">Add</button>
     </div>
 </form>

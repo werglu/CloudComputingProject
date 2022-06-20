@@ -17,7 +17,8 @@ export class AddNewPostModalComponent {
         private router: Router,
         private postService: PostService) {
         this.addForm = this.formBuilder.group({
-            text: ''
+            text: '',
+            isPinned: false
         });
     }
 
@@ -25,7 +26,7 @@ export class AddNewPostModalComponent {
         if (this.addForm.valid) {
             const post = <Post>{
                 text: this.addForm.value.text,
-                isPinned: false,
+                isPinned: this.addForm.value.isPinned,
                 createdDate: new Date(),
                 //file: this.selectedFile
             };
@@ -40,12 +41,6 @@ export class AddNewPostModalComponent {
             )
         }
     }
-
-
-    //onUpload() {
-        
-
-    //}
 
     onFileSelected(event) {
         this.selectedFile = <File>event.target.files[0];
