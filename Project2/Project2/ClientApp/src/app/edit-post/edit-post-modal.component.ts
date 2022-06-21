@@ -18,7 +18,11 @@ export class EditPostModalComponent {
         private activatedRoute: ActivatedRoute,
         private router: Router,
         private postService: PostService) {
- 
+
+        this.form = this.formBuilder.group({
+            text: '',
+            isPinned: false
+        });
 
         this.activatedRoute.params.subscribe(params => {
             this.id = params['id'];
@@ -26,11 +30,11 @@ export class EditPostModalComponent {
             console.log(`${this.id}`);
 
             this.postService.getPost(this.id).subscribe(post => {
-                //this.selectedFile = post.file;
                 this.postToEdit = post;
                 this.form = this.formBuilder.group({
                     text: post.text,
                     isPinned: post.isPinned
+
                 });
             })
         });
