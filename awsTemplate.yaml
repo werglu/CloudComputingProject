@@ -4,9 +4,19 @@ Parameters:
   RoleArn: 
     Description: Role Arn
     Type: String
+
+  ReplicationRegion:
+    Type: String
+    Description: Enter Region for dynamoDB replica
+    Default: us-west-2
+
+  ReplicationBucketName:
+    Type: String
+    Description: Replication s3 bucket name
+      
 Resources:
   myTable:
-    Type: 'AWS::DynamoDB::Table'
+    Type: 'AWS::DynamoDB::GlobalTable'
     Properties:
       TableName: Posts
       AttributeDefinitions:
@@ -15,9 +25,12 @@ Resources:
       KeySchema:
         - AttributeName: id
           KeyType: HASH
-      ProvisionedThroughput:
-        ReadCapacityUnits: 5
-        WriteCapacityUnits: 5
+      BillingMode: PAY_PER_REQUEST
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      Replicas:
+        - Region: !Ref AWS::Region
+        - Region: !Ref ReplicationRegion
 
   ApiGatewayRestApi:
     Type: AWS::ApiGateway::RestApi
@@ -558,12 +571,20 @@ Resources:
       Description: Lambda API Deployment
       RestApiId: !Ref ApiGatewayRestApi
 
-################
-### FRONTEND ###
-################
-
   FilesBucket:
     Type: 'AWS::S3::Bucket'
+    Properties:
+      VersioningConfiguration:
+        Status: Enabled
+      ReplicationConfiguration:
+        Role: !Ref RoleArn
+        Rules:
+          - Id: MyRule
+            Status: Enabled
+            Prefix: MyPrefix
+            Destination:
+              Bucket: !Sub 'arn:aws:s3:::${ReplicationBucketName}'
+              StorageClass: STANDARD
 
   FilesBucketPolicy:
     Type: AWS::S3::BucketPolicy
