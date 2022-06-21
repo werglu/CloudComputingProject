@@ -13,9 +13,9 @@
     </thead>
     <tbody>
         <tr *ngFor="let post of posts">
-            <td [ngClass]="{ 'pinned': !post.isPinned }">{{ post.createdDate }}</td>
-            <td [ngClass]="{ 'pinned': !post.isPinned }">{{ post.text }}</td>
-            <td [ngClass]="{ 'pinned': !post.isPinned }">{{ post.isPinned }}</td>
+            <td [ngClass]="{ 'pinned': post.isPinned }">{{ post.createdDate }}</td>
+            <td [ngClass]="{ 'pinned': post.isPinned }">{{ post.text }}</td>
+            <td [ngClass]="{ 'pinned': post.isPinned }">{{ post.isPinned }}</td>
             <!--<td>{{post.file ? post.file.name : ''}}</td>-->
             <td><button class="btn-secondary"  [routerLink]="['/editPost/'+post.id]" >Edit post</button></td>
             <td><button class="btn-secondary" (click)="delete(post)">Delete post</button></td>
