@@ -1,0 +1,642 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: AWS Template
+Parameters: 
+  RoleArn: 
+    Description: Role Arn
+    Type: String
+Resources:
+  myTable:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      TableName: Posts
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+
+  ApiGatewayRestApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: RestApi
+
+  ApiGatewayResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt ApiGatewayRestApi.RootResourceId
+      PathPart: 'posts'
+      RestApiId: !Ref ApiGatewayRestApi
+
+  OptionsApiGatewayMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      ResourceId: !Ref ApiGatewayResource
+      RestApiId: !Ref ApiGatewayRestApi
+      HttpMethod: OPTIONS
+      Integration:
+        IntegrationResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+            method.response.header.Access-Control-Allow-Methods: "'GET,PATCH,DELETE,POST,PUT,OPTIONS'"
+            method.response.header.Access-Control-Allow-Origin: "'*'"
+          ResponseTemplates:
+            application/json: ''
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        Type: MOCK
+      MethodResponses:
+      - StatusCode: 200
+        ResponseModels:
+          application/json: 'Empty'
+        ResponseParameters:
+          method.response.header.Access-Control-Allow-Headers: false
+          method.response.header.Access-Control-Allow-Methods: false
+          method.response.header.Access-Control-Allow-Origin: false
+
+
+  ApiGatewayPostsIdResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !Ref ApiGatewayResource
+      PathPart: '{id}'
+      RestApiId: !Ref ApiGatewayRestApi
+
+  OptionsApiGatewayPostsIdMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      ResourceId: !Ref ApiGatewayPostsIdResource
+      RestApiId: !Ref ApiGatewayRestApi
+      HttpMethod: OPTIONS
+      Integration:
+        IntegrationResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+            method.response.header.Access-Control-Allow-Methods: "'GET,PATCH,DELETE,POST,PUT,OPTIONS'"
+            method.response.header.Access-Control-Allow-Origin: "'*'"
+          ResponseTemplates:
+            application/json: ''
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        Type: MOCK
+      MethodResponses:
+      - StatusCode: 200
+        ResponseModels:
+          application/json: 'Empty'
+        ResponseParameters:
+          method.response.header.Access-Control-Allow-Headers: false
+          method.response.header.Access-Control-Allow-Methods: false
+          method.response.header.Access-Control-Allow-Origin: false
+
+  GetAllFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: getAllPostsLambda
+      Handler: index.handler
+      Role: !Ref RoleArn
+      Code:
+        ZipFile:  |
+          const AWS = require("aws-sdk");
+          const dynamo = new AWS.DynamoDB.DocumentClient();
+          exports.handler = (event, context, callback) => {
+            dynamo.scan({TableName: "Posts"}, 
+            (err, data) => {
+              if(err) {
+                callback(err);
+              } else {
+                callback(null, data.Items);
+              }
+            });
+          };
+      Runtime: nodejs16.x
+      Timeout: 300
+
+  GetAllMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: GET
+      Integration:
+        Credentials: !Ref RoleArn
+        IntegrationHttpMethod: GET
+        Type: AWS
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetAllFunction.Arn}/invocations'
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+      MethodResponses:
+        - StatusCode: 200
+          ResponseModels: 
+            application/json: 'Empty'
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: false
+      ResourceId: !Ref ApiGatewayResource
+      RestApiId: !Ref ApiGatewayRestApi
+
+  CreatePostFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: createNewPostLambda
+      Handler: index.handler
+      Role: !Ref RoleArn
+      Code:
+        ZipFile:  |
+          const AWS = require("aws-sdk");
+          const dynamo = new AWS.DynamoDB.DocumentClient();
+
+          exports.handler = (event, context, callback) => {
+              let id = AWS.util.uuid.v4();
+
+              dynamo.put({
+                  TableName: "Posts",
+                  Item: {
+                      id: id,
+                      text: event.text,
+                      isPinned: event.isPinned,
+                      createdDate: event.createdDate,
+                      filename: event.filename
+                  }
+              }, (err, data) => {
+                  if(err) {
+                      callback(err);
+                  } else {
+                      let item = {
+                          id: id,
+                          text: event.text,
+                          isPinned: event.isPinned,
+                          createdDate: event.createdDate,
+                          filename: event.filename
+                      };
+            
+                      callback(null, item);
+                  }
+              });
+          };
+      Runtime: nodejs16.x
+      Timeout: 300
+
+  CreatePostMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: POST
+      Integration:
+        Credentials: !Ref RoleArn
+        IntegrationHttpMethod: POST
+        Type: AWS
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${CreatePostFunction.Arn}/invocations'
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+      MethodResponses:
+        - StatusCode: 200
+          ResponseModels: 
+            application/json: 'Empty'
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: false
+      ResourceId: !Ref ApiGatewayResource
+      RestApiId: !Ref ApiGatewayRestApi
+
+  DeletePostFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: deletePostByIdLambda
+      Handler: index.handler
+      Role: !Ref RoleArn
+      Code:
+        ZipFile:  |
+          const AWS = require("aws-sdk");
+          const dynamo = new AWS.DynamoDB.DocumentClient();
+          const headers = {
+              "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
+              "Access-Control-Allow-Methods": "GET,DELETE,PUT,OPTIONS",
+              "Access-Control-Allow-Origin": "*",
+              "Content-Type": "application/json"
+          };
+
+          exports.handler = (event, context, callback) => {
+              let statusCode = 200;
+              let body = null;
+
+              dynamo.delete({
+                  TableName: "Posts",
+                  Key: {
+                      id: event.pathParameters?.id
+                  }
+              }, (err, data) => {
+                  if(err) {
+                      statusCode = 400;
+                      // body = JSON.stringify(err.message);
+                      body = err.message;
+                  }
+                  
+                  callback(null, {statusCode, body, headers});
+              });
+          };
+      Runtime: nodejs16.x
+      Timeout: 300
+
+  DeletePostMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: DELETE
+      Integration:
+        Credentials: !Ref RoleArn
+        IntegrationHttpMethod: DELETE
+        Type: AWS_PROXY
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${DeletePostFunction.Arn}/invocations'
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+      MethodResponses:
+        - StatusCode: 200
+          ResponseModels: 
+            application/json: 'Empty'
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: false
+      ResourceId: !Ref ApiGatewayPostsIdResource
+      RestApiId: !Ref ApiGatewayRestApi
+
+  EditPostFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: editPostByIdLambda
+      Handler: index.handler
+      Role: !Ref RoleArn
+      Code:
+        ZipFile:  |
+          const AWS = require("aws-sdk");
+          const dynamo = new AWS.DynamoDB.DocumentClient();
+          const headers = {
+              "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
+              "Access-Control-Allow-Methods": "GET,DELETE,PUT,OPTIONS",
+              "Access-Control-Allow-Origin": "*",
+              "Content-Type": "application/json"
+          };
+
+          exports.handler = (event, context, callback) => {
+              let statusCode = 200;
+              let body = null;
+              let requestBody = JSON.parse(event.body);
+    
+              dynamo.put({
+                  TableName: "Posts",
+                  Item: {
+                      id: event.pathParameters?.id,
+                      text: requestBody.text,
+                      isPinned: requestBody.isPinned,
+                      createdDate: requestBody.createdDate
+                  }
+              }, (err, data) => {
+                  if(err) {
+                      statusCode = 400;
+                      // body = JSON.stringify(err.message);
+                      body = err.message;
+                  }
+        
+                  callback(null, {statusCode, body, headers});
+              });
+          };
+      Runtime: nodejs16.x
+      Timeout: 300
+
+  EditPostMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: PUT
+      Integration:
+        Credentials: !Ref RoleArn
+        IntegrationHttpMethod: PUT
+        Type: AWS_PROXY
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${EditPostFunction.Arn}/invocations'
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+      MethodResponses:
+        - StatusCode: 200
+          ResponseModels: 
+            application/json: 'Empty'
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: false
+      ResourceId: !Ref ApiGatewayPostsIdResource
+      RestApiId: !Ref ApiGatewayRestApi
+
+  GetPostFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: getPost
+      Handler: index.handler
+      Role: !Ref RoleArn
+      Code:
+        ZipFile:  |
+          const AWS = require("aws-sdk");
+          const dynamo = new AWS.DynamoDB.DocumentClient();
+          const headers = {
+              "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
+              "Access-Control-Allow-Methods": "GET,DELETE,PUT,OPTIONS",
+              "Access-Control-Allow-Origin": "*",
+              "Content-Type": "application/json"
+          };
+
+          exports.handler = (event, context, callback) => {
+              let statusCode = 200;
+              let body = null;
+
+              dynamo.get({
+                  TableName: "Posts",
+                  Key: {
+                      id: event.pathParameters?.id
+                  }
+              }, (err, data) => {
+                  if(err) {
+                      statusCode = 400;
+                      // body = JSON.stringify(err.message);
+                      body = err.message;
+                  } else {
+                      body = JSON.stringify(data?.Item);
+                  }
+        
+                  callback(null, {statusCode, body, headers});
+              });
+          };          
+      Runtime: nodejs16.x
+      Timeout: 300
+
+  GetPostMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: GET
+      Integration:
+        Credentials: !Ref RoleArn
+        IntegrationHttpMethod: GET
+        Type: AWS_PROXY
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetPostFunction.Arn}/invocations'
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+      MethodResponses:
+        - StatusCode: 200
+          ResponseModels: 
+            application/json: 'Empty'
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: false
+      ResourceId: !Ref ApiGatewayPostsIdResource
+      RestApiId: !Ref ApiGatewayRestApi
+
+  ApiGatewayBucketResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt ApiGatewayRestApi.RootResourceId
+      PathPart: '{bucket}'
+      RestApiId: !Ref ApiGatewayRestApi
+
+  OptionsApiGatewayBucketMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      ResourceId: !Ref ApiGatewayBucketResource
+      RestApiId: !Ref ApiGatewayRestApi
+      HttpMethod: OPTIONS
+      Integration:
+        IntegrationResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+            method.response.header.Access-Control-Allow-Methods: "'GET,PATCH,DELETE,POST,PUT,OPTIONS'"
+            method.response.header.Access-Control-Allow-Origin: "'*'"
+          ResponseTemplates:
+            application/json: ''
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        Type: MOCK
+      MethodResponses:
+      - StatusCode: 200
+        ResponseModels:
+          application/json: 'Empty'
+        ResponseParameters:
+          method.response.header.Access-Control-Allow-Headers: false
+          method.response.header.Access-Control-Allow-Methods: false
+          method.response.header.Access-Control-Allow-Origin: false
+
+  ApiGatewayBucketFilenameResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !Ref ApiGatewayBucketResource
+      PathPart: '{filename}'
+      RestApiId: !Ref ApiGatewayRestApi
+
+  OptionsApiGatewayBucketFilenameMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      ResourceId: !Ref ApiGatewayBucketFilenameResource
+      RestApiId: !Ref ApiGatewayRestApi
+      HttpMethod: OPTIONS
+      Integration:
+        IntegrationResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+            method.response.header.Access-Control-Allow-Methods: "'GET,PATCH,DELETE,POST,PUT,OPTIONS'"
+            method.response.header.Access-Control-Allow-Origin: "'*'"
+          ResponseTemplates:
+            application/json: ''
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        Type: MOCK
+      MethodResponses:
+      - StatusCode: 200
+        ResponseModels:
+          application/json: 'Empty'
+        ResponseParameters:
+          method.response.header.Access-Control-Allow-Headers: false
+          method.response.header.Access-Control-Allow-Methods: false
+          method.response.header.Access-Control-Allow-Origin: false
+
+  GetFileMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: GET
+      RequestParameters:
+        method.request.path.bucket: false
+        method.request.path.filename: false
+      Integration:
+        Credentials: !Ref RoleArn
+        IntegrationHttpMethod: GET
+        Type: AWS
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:s3:path/{bucket}/{filename}'
+        RequestParameters:
+          integration.request.path.bucket: method.request.path.bucket
+          integration.request.path.filename: method.request.path.filename
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+      MethodResponses:
+        - StatusCode: 200
+          ResponseModels: 
+            application/json: 'Empty'
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: false
+      ResourceId: !Ref ApiGatewayBucketFilenameResource
+      RestApiId: !Ref ApiGatewayRestApi
+
+
+  PutFileMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: PUT
+      RequestParameters:
+        method.request.path.bucket: false
+        method.request.path.filename: false
+      Integration:
+        Credentials: !Ref RoleArn
+        IntegrationHttpMethod: PUT
+        Type: AWS
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:s3:path/{bucket}/{filename}'
+        RequestParameters:
+          integration.request.path.bucket: method.request.path.bucket
+          integration.request.path.filename: method.request.path.filename
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+      MethodResponses:
+        - StatusCode: 200
+          ResponseModels: 
+            application/json: 'Empty'
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: false
+      ResourceId: !Ref ApiGatewayBucketFilenameResource
+      RestApiId: !Ref ApiGatewayRestApi
+
+
+  ApiGatewayStage:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      DeploymentId: !Ref ApiGatewayDeployment
+      Description: API Stage prod
+      RestApiId: !Ref ApiGatewayRestApi
+      StageName: 'prod'
+
+  ApiGatewayDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn: 
+      - OptionsApiGatewayMethod
+      - OptionsApiGatewayPostsIdMethod
+      - OptionsApiGatewayBucketMethod
+      - OptionsApiGatewayBucketFilenameMethod
+      - GetAllMethod
+      - PutFileMethod
+      - GetFileMethod
+      - GetPostMethod
+      - EditPostMethod
+      - DeletePostMethod
+      - CreatePostMethod
+    Properties:
+      Description: Lambda API Deployment
+      RestApiId: !Ref ApiGatewayRestApi
+
+################
+### FRONTEND ###
+################
+
+  FilesBucket:
+    Type: 'AWS::S3::Bucket'
+
+  FilesBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FilesBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action: 
+              - s3:GetObject
+              - s3:PutObject
+            Resource: 
+              - !Sub '${FilesBucket.Arn}'
+              - !Sub '${FilesBucket.Arn}/*'
+
+  WebServerBucket:
+    Type: 'AWS::S3::Bucket'
+
+  WebServerBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref WebServerBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action: 's3:GetObject'
+            Resource: 
+              - !Sub '${WebServerBucket.Arn}'
+              - !Sub '${WebServerBucket.Arn}/*'
+
+
+  CloudFrontOriginIdentity:
+    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: 'origin identity'
+
+  CloudFront:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Origins:
+          - DomainName: !GetAtt WebServerBucket.DomainName
+            Id: webServerBucketId
+            S3OriginConfig:
+              OriginAccessIdentity: !Sub 'origin-access-identity/cloudfront/${CloudFrontOriginIdentity}'
+        Enabled: 'true'
+        DefaultRootObject: 'index.html'
+        DefaultCacheBehavior:
+          AllowedMethods:
+            - GET
+            - HEAD
+          TargetOriginId: webServerBucketId
+          ForwardedValues:
+            QueryString: 'false'
+            Cookies:
+              Forward: none
+          ViewerProtocolPolicy: redirect-to-https
+
+
+Outputs:
+  WebServerBucketName:
+    Value: !Ref WebServerBucket
+    Description: Name of the Web Server S3 Bucket
+
+  FilesBucketName:
+    Value: !Ref FilesBucket
+    Description: Name of the Files S3 Bucket
+
+  CloudFrontUrl:
+    Value: !GetAtt CloudFront.DomainName
+    Description: Frontend url
