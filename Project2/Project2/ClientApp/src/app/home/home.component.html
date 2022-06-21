@@ -4,8 +4,8 @@
             <th>Date</th>
             <th>Text</th>
             <th>Is pinned</th>
-            <!--<th>File name</th>-->
-            <th>Edit</th>
+            <th>File name</th>
+            <!--<th>Edit</th>-->
             <th>Delete</th>
         </tr>
     </thead>
@@ -14,11 +14,14 @@
             <td [ngClass]="{ 'pinned': post.isPinned }">{{ post.createdDate }}</td>
             <td [ngClass]="{ 'pinned': post.isPinned }">{{ post.text }}</td>
             <td [ngClass]="{ 'pinned': post.isPinned }">{{ post.isPinned }}</td>
-            <!--<td>{{post.file ? post.file.name : ''}}</td>-->
-            <td><button class="btn-secondary"  [routerLink]="['/editPost/'+post.id]" style="background-color: limegreen; border-color: limegreen;" >Edit post</button></td>
+            <td *ngIf="post.filename == null"></td>
+            <td *ngIf="post.filename != null">
+                <button class="btn-secondary" (click)="downloadFile(post)" style="background-color: limegreen; border-color: limegreen;">{{post.filename}}</button>
+            </td>
+            <!--<td><button class="btn-secondary"  [routerLink]="['/editPost/'+post.id]" style="background-color: limegreen; border-color: limegreen;" >Edit post</button></td>-->
             <td><button class="btn-secondary" (click)="delete(post)">Delete post</button></td>
         </tr>
     </tbody>
 </table>
 
-<button class="btn-primary"  [routerLink]="['/addNewPost']">Add new post</button>
+<button class="btn-primary" [routerLink]="['/addNewPost']">Add new post</button>

@@ -1,6 +1,8 @@
 import { Component } from '@angular/core';
+import { FileService } from '../file.service';
 import { Post } from '../post';
 import { PostService } from '../post.service';
+import { saveAs } from 'file-saver';
 
 @Component({
     selector: 'app-home',
@@ -10,7 +12,7 @@ import { PostService } from '../post.service';
 export class HomeComponent {
     public posts: Post[];
 
-    constructor(private postService: PostService) {
+    constructor(private postService: PostService, private fileService: FileService) {
         this.postService.getAllPosts().subscribe(p => {
             console.log(p);    
             this.posts = p.sort((p1, p2) => {
@@ -29,5 +31,14 @@ export class HomeComponent {
                 this.posts.splice(index, 1);
             }
         });
+    }
+
+    public downloadFile(post: Post) {
+        this.fileService.getFile(post.id).subscribe(
+            resp => {
+                saveAs(resp, post.filename);
+            }, err => {
+                console.log('file download failed');
+            });
     }
 }
