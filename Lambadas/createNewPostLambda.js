@@ -10,7 +10,8 @@ exports.handler = (event, context, callback) => {
             id: id,
             text: event.text,
             isPinned: event.isPinned,
-            createdDate: event.createdDate
+            createdDate: event.createdDate,
+            filename: event.filename
         }
     }, (err, data) => {
         if(err) {
@@ -20,7 +21,8 @@ exports.handler = (event, context, callback) => {
                 id: id,
                 text: event.text,
                 isPinned: event.isPinned,
-                createdDate: event.createdDate
+                createdDate: event.createdDate,
+                filename: event.filename
             };
             
             callback(null, item);
