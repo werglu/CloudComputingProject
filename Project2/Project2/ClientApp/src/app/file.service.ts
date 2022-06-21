@@ -17,7 +17,7 @@ export class FileService {
         return this.http.get(this.bucketUrl + filename, { responseType: 'blob' });
     }
 
-    addFilePut(file: File) {
-        return this.http.put(this.bucketUrl + 'file' + file.name, file);
+    addFile(file: File, key: string) {
+        return this.http.put(this.bucketUrl + key, file);
     }
 }
