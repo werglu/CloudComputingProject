@@ -1,7 +1,7 @@
-﻿import { HttpErrorResponse } from '@angular/common/http';
-import { Component } from '@angular/core';
+﻿import { Component } from '@angular/core';
 import { FormBuilder, FormGroup } from '@angular/forms';
 import { Router } from '@angular/router';
+import { FileService } from '../file.service';
 import { Post } from '../post';
 import { PostService } from '../post.service';
 
@@ -15,7 +15,8 @@ export class AddNewPostModalComponent {
 
     constructor(private formBuilder: FormBuilder,
         private router: Router,
-        private postService: PostService) {
+        private postService: PostService,
+        private fileService: FileService) {
         this.addForm = this.formBuilder.group({
             text: '',
             isPinned: false
@@ -28,11 +29,20 @@ export class AddNewPostModalComponent {
                 text: this.addForm.value.text,
                 isPinned: this.addForm.value.isPinned,
                 createdDate: new Date(),
-                //file: this.selectedFile
+                filename: this.selectedFile ? this.selectedFile.name : null
             };
 
             this.postService.addPost(post).subscribe(
-                response => {
+                (response: Post) => {
+                    if (this.selectedFile) {
+                        this.fileService.addFile(this.selectedFile, response.id).subscribe(
+                            resp => {
+                                console.log(resp);
+                            },
+                            err => {
+                                console.log(err);
+                            });
+                    }
                     this.router.navigateByUrl('/');
                 },
                 error => {
